@@ -103,7 +103,7 @@ function get_repos_from_site {
     REPOSITORIES="original ps-56 ps-57 ps-80 pxb-24 pxb-80 pxc-56 pxc-57 pxc-80 psmdb-36 psmdb-40 psmdb-42 tools ppg-11 ppg-11.5 ppg-11.6 ppg-11.7 ppg-11.8 ppg-12 ppg-12.2 ppg-12.3 pdmdb-4.2 pdmdb-4.2.6 pdmdb-4.2.7 pdmdb-4.2.8 pdps-8.0.19 pdpxc-8.0.19 pdps-8.0.20 pdps-8.0 pdpxc-8.0 prel telemetry proxysql sysbench pt mysql-shell pbm pmm-client pmm2-client pmm3-client pdmdb-4.4 pdmdb-4.4.0 psmdb-44"
   fi
 
-  REPOSITORIES="${REPOSITORIES} ps-80-pro ps-84-pro psmdb-60-pro psmdb-70-pro ps-57-eol pxc-57-eol pxc-80-pro pxc-84-pro"
+  REPOSITORIES="${REPOSITORIES} ps-57-eol pxc-57-eol"
   REPOSITORIES="${REPOSITORIES/percona/original}"
   for repo in ${REPOSITORIES[@]}
     do
@@ -210,7 +210,6 @@ PS57REPOS="ps-57 pxb-24"
 PS80REPOS="ps-80 tools"
 PS57EOLREPOS="ps-57-eol"
 PXC57EOLREPOS="pxc-57-eol"
-PS80PROREPOS="ps-80-pro"
 PXC56REPOS="pxc-56 tools"
 PXC57REPOS="pxc-57 pxb-24"
 PXC80REPOS="pxc-80 tools"
@@ -219,8 +218,6 @@ PXB80REPOS="pxb-80"
 PSMDB36REPOS="psmdb-36 pbm"
 PSMDB40REPOS="psmdb-40 tools"
 PSMDB42REPOS="psmdb-42 tools"
-PSMDB60PROREPOS="psmdb-60-pro"
-PSMDB70PROREPOS="psmdb-70-pro"
 PPG11REPOS="ppg-11"
 PPG11_5_REPOS="ppg-11.5"
 PPG11_6_REPOS="ppg-11.6"
@@ -318,7 +315,6 @@ function check_specified_alias {
   for _alias in ${ALIASES}; do
     NAME=$(echo ${1} | sed 's/-//' )
     # Ignore alias in case of -pro repos
-    [[ ${NAME} == *pro ]] && found=YES
     [[ ${NAME} == *eol ]] && found=YES
     [[ ${NAME} == *innovation ]] && found=YES
     [[ ${NAME} == *lts ]] && found=YES
@@ -378,7 +374,7 @@ function check_specified_repo {
     exit 2
   fi
 
-  if [[ "${REPO_NAME}" == *-pro ]] || [[ "${REPO_NAME}" == *-eol ]]; then
+  if [[ "${REPO_NAME}" == *-eol ]]; then
     if [[ -z ${USER_NAME} ]] || [[ -z ${REPO_TOKEN} ]]; then
       echo -e "ERROR: ${REPO_NAME} requires user_name and repo_token for ${REPO_NAME} repository. Either pass credentials using --user_name and --repo_token switches or create file ${HOME}/.percona-private-repos.config with following values:\n\n[${REPO_NAME}]\nUSER_NAME=<Your PRO repository user name>\nREPO_TOKEN=<Your PRO repository token>" && exit 2
     fi
@@ -396,26 +392,26 @@ function check_os_support {
       OS_VER=$(cat /etc/system-release | awk '{print $(NF-1)}' | awk -F'.' '{print $1}')
     fi
 
-    if [[ ${REPO_NAME} == *-pro ]] || [[ "${REPO_NAME}" == *-eol ]]; then
+    if [[ "${REPO_NAME}" == *-eol ]]; then
       [[ -z ${USER_NAME} ]] && echo -e "ERROR: ${REPO_NAME} requires user_name for ${REPO_NAME} repository. Use --user_name switch to pass user name" && exit 2
       [[ -z ${REPO_TOKEN} ]] && echo -e "ERROR: ${REPO_NAME} requires repo_token for ${REPO_NAME} repository. Use --repo_token switch to pass repository token" && exit 2
     fi
 
-    if [[ ${REPO_NAME} == *-pro ]] || [[ "${REPO_NAME}" == *-eol ]]; then
+    if [[ "${REPO_NAME}" == *-eol ]]; then
       reply=$("${CURL_EXEC[@]}" -Is ${URL}/private/${USER_NAME}-${REPO_TOKEN}/${REPO_NAME}/yum/${COMPONENT}/${OS_VER}/ | head -n 1 | awk '{print $2}')
     else
       reply=$("${CURL_EXEC[@]}" -Is ${URL}/${REPO_NAME}/yum/${COMPONENT}/${OS_VER}/ | head -n 1 | awk '{print $2}')
     fi
   elif [[ ${PKGTOOL} = "apt-get" ]]; then
     OS_VER=$(lsb_release -sc)
-    if [[ ${REPO_NAME} == *-pro ]] || [[ ${REPO_NAME} == *-eol ]]; then
+    if [[ ${REPO_NAME} == *-eol ]]; then
       reply=$("${CURL_EXEC[@]}" -Is ${URL}/private/${USER_NAME}-${REPO_TOKEN}/${REPO_NAME}/apt/dists/${OS_VER}/ | head -n 1 | awk '{print $2}')
     else
       reply=$("${CURL_EXEC[@]}" -Is ${URL}/${REPO_NAME}/apt/dists/${OS_VER}/ | head -n 1 | awk '{print $2}')
     fi
   fi
   if [[ ${reply} != 200 ]]; then
-      if [[ ${REPO_NAME} == *-pro ]] || [[ ${REPO_NAME} == *-eol ]]; then
+      if [[ ${REPO_NAME} == *-eol ]]; then
         echo "Specified repository ($REPO_NAME) is not supported for current operating system or check your credentials."
       else
         echo "Specified repository is not supported for current operating system!"
@@ -437,7 +433,7 @@ function check_repo_availability {
     COMPONENT="release"
   fi
 
-  if [[ "${REPO_NAME}" == *-pro ]] || [[ "${REPO_NAME}" == *-eol ]]; then
+  if [[ "${REPO_NAME}" == *-eol ]]; then
     if [ -f "${HOME}/.percona-private-repos.config" ]; then
       read_credentials_from_config ${REPO_NAME}
     else
@@ -445,7 +441,7 @@ function check_repo_availability {
     fi
   fi
 
-  if [[ "${REPO_NAME}" == *-pro ]] || [[ "${REPO_NAME}" == *-eol ]]; then
+  if [[ "${REPO_NAME}" == *-eol ]]; then
         if [[ -z ${USER_NAME} ]] || [[ -z ${REPO_TOKEN} ]]; then
           echo -e "ERROR: ${REPO_NAME} requires user_name and repo_token for ${REPO_NAME} repository. Either pass credentials using --user_name and --repo_token switches or create file ${HOME}/.percona-private-repos.config with following values:\n\n[${REPO_NAME}]\nUSER_NAME=<Your PRO repository user name>\nREPO_TOKEN=<Your PRO repository token>" && exit 2
         fi
@@ -467,7 +463,7 @@ function check_repo_availability {
     REPO_NAME=$(echo ${REPO_NAME} | sed 's/lts/-lts/' )
   fi
 
-  if [[ ${REPO_NAME} == *-pro ]] || [[ "${REPO_NAME}" == *-eol ]]; then
+  if [[ "${REPO_NAME}" == *-eol ]]; then
     [[ -z ${USER_NAME} ]] && echo -e "ERROR: ${REPO_NAME} requires user_name for ${REPO_NAME} repository. Use --user_name switch to pass user name" && exit 2
     [[ -z ${REPO_TOKEN} ]] && echo -e "ERROR: ${REPO_NAME} requires repo_token for ${REPO_NAME} repository. Use --repo_token switch to pass repository token" && exit 2
     REPO_LINK="${URL}/private/${USER_NAME}-${REPO_TOKEN}/${REPO_NAME}/"
@@ -483,7 +479,7 @@ function check_repo_availability {
       check_os_support ${REPO_NAME} ${COMPONENT}
     fi
   else
-    if [[ ${REPO_NAME} == *-pro ]] || [[ "${REPO_NAME}" == *-eol ]]; then
+    if [[ "${REPO_NAME}" == *-eol ]]; then
       echo "Specified repository does not exist: ${REPO_LINK} or check your repository credentials"
     else
       echo "Specified repository does not exist: ${REPO_LINK}"
@@ -522,22 +518,16 @@ function show_help {
   echo "  Example: $(basename ${0}) enable-only ps-80 testing --scheme https"
   echo "  Example: $(basename ${0}) setup ps-80 --scheme https"
   echo "  Example: $(basename ${0}) setup -y ps-80 --scheme https"
-  echo "  Example: $(basename ${0}) enable ps-80-pro release --user_name=<User Name> --repo_token=<Pro repository token>"
-  echo "  Example: $(basename ${0}) enable ps-80-pro release --user_name=<User Name> --repo_token=<Pro repository token> --scheme https"
   echo "  Example: $(basename ${0}) enable-only ps-80 experimental --user_name=<User Name> --repo_token=<Pro repository token>"
   echo "  Example: $(basename ${0}) enable-only ps-80 experimental --user_name=<User Name> --repo_token=<Pro repository token> --scheme https"
-  echo "  Example: $(basename ${0}) setup ps-80-pro --user_name=<User Name> --repo_token=<Pro repository token>"
-  echo "  Example: $(basename ${0}) setup ps-80-pro --user_name=<User Name> --repo_token=<Pro repository token> --scheme https"
-  echo "  Example: $(basename ${0}) setup -y ps-80-pro --user_name=<User Name> --repo_token=<Pro repository token>"
-  echo "  Example: $(basename ${0}) setup -y ps-80-pro --user_name=<User Name> --repo_token=<Pro repository token> --scheme https"
   echo
   echo "Available commands:          ${COMMANDS}"
   echo
   echo "Available setup products:    "
-  sort_array "${ALIASES} ps-80-pro psmdb-70-pro psmdb-60-pro"
+  sort_array "${ALIASES}"
   echo
   echo "Available repositories:      "
-  sort_array "${REPOSITORIES} ps-80-pro psmdb-70-pro psmdb-60-pro"
+  sort_array "${REPOSITORIES}"
   echo
   echo "Available components:        ${COMPONENTS}"
   echo
@@ -581,7 +571,7 @@ function create_yum_repo {
       ENABLE=1
     fi
 
-    if [[ ${_repo} == *-pro ]] || [[ "${REPO_NAME}" == *-eol ]]; then
+    if [[ "${REPO_NAME}" == *-eol ]]; then
       [[ -z ${USER_NAME} ]] && echo -e "ERROR: ${REPO_NAME} requires user_name for ${REPO_NAME} repository. Use --user_name switch to pass user name" && exit 2
       [[ -z ${REPO_TOKEN} ]] && echo -e "ERROR: ${REPO_NAME} requires repo_token for ${REPO_NAME} repository. Use --repo_token switch to pass repository token" && exit 2
       echo "baseurl = ${URL}/private/${USER_NAME}-${REPO_TOKEN}/${_repo}/yum/${2}/\$releasever/${DIR}${rPATH}" >> ${REPOFILE}
@@ -606,7 +596,7 @@ function create_apt_repo {
   [[ ${1} = "original" ]] && _repo=percona
   REPOURL="${URL}/${_repo}/apt ${CODENAME}"
 
-  if [[ ${_repo} == *-pro ]] || [[ "${REPO_NAME}" == *-eol ]]; then
+  if [[ "${REPO_NAME}" == *-eol ]]; then
     [[ -z ${USER_NAME} ]] && echo -e "ERROR: ${REPO_NAME} requires user_name for ${REPO_NAME} repository. Use --user_name switch to pass user name" && exit 2
     [[ -z ${REPO_TOKEN} ]] && echo -e "ERROR: ${REPO_NAME} requires repo_token for ${REPO_NAME} repository. Use --repo_token switch to pass repository token" && exit 2
     REPOURL="${URL}/private/${USER_NAME}-${REPO_TOKEN}/${_repo}/apt ${CODENAME}"
@@ -687,7 +677,6 @@ function enable_repository {
   [[ ${1} = "ps-56" ]]    && DESCRIPTION=${PS56_DESC}
   [[ ${1} = "ps-57" ]]    && DESCRIPTION=${PS57_DESC}
   [[ ${1} = "ps-80" ]]    && DESCRIPTION=${PS80_DESC}
-  [[ ${1} = "ps-80-pro" ]]    && DESCRIPTION=${PS80_PRO_DESC}
   [[ ${1} = "ps-57-eol" ]]    && DESCRIPTION=${PS57_EOL_DESC}
   [[ ${1} = "pxc-57-eol" ]]    && DESCRIPTION=${PXC57_EOL_DESC}
   [[ ${1} = "pxc-56" ]]   && DESCRIPTION=${PXC56_DESC}
@@ -870,7 +859,7 @@ function disable_dnf_module {
 #
 function enable_alias {
   local REPOS=""
-  if [[ ${1} != *-pro ]] && [[ ${1} != *-innovation ]] && [[ ${1} != *-eol  ]] && [[ ${1} != *-lts  ]]; then
+  if [[ ${1} != *-innovation ]] && [[ ${1} != *-eol  ]] && [[ ${1} != *-lts  ]]; then
     local NAME=$( echo ${1} | sed 's/-//' )
   else
     local NAME=${1}
@@ -887,9 +876,6 @@ function enable_alias {
   [[ ${NAME} = ps80 ]] && REPOS=${PS80REPOS:-}
   [[ ${NAME} = ps57-eol ]] && REPOS=${PS57EOLREPOS:-}
   [[ ${NAME} = pxc57-eol ]] && REPOS=${PXC57EOLREPOS:-}
-  [[ ${NAME} = ps80-pro ]] && REPOS=${PS80PROREPOS:-}
-  [[ ${NAME} = psmdb60-pro ]] && REPOS=${PSMDB60PROREPOS:-}
-  [[ ${NAME} = psmdb70-pro ]] && REPOS=${PSMDB70PROREPOS:-}
   [[ ${NAME} = pxc56 ]] && REPOS=${PXC56REPOS:-}
   [[ ${NAME} = pxc57 ]] && REPOS=${PXC57REPOS:-}
   [[ ${NAME} = pxc80 ]] && REPOS=${PXC80REPOS:-}
@@ -954,7 +940,7 @@ function enable_alias {
       [[ ${name} = "pdpxc" ]] && REPOS="$name-$version"
     fi
   fi
-  if [[ ${NAME} = ps80 ]] || [[ ${NAME} == ps80-pro ]] || [[ ${NAME} == psmdb70-pro ]] || [[ ${NAME} == psmdb60-pro ]] || [[ ${NAME} == pxc* ]] || [[ ${NAME} == ppg* ]] || [[ ${NAME} == pdps* ]] || [[ ${NAME} == pdpxc* ]] || [[ ${NAME} == *innovation ]] || [[ ${NAME} == *lts ]]; then
+  if [[ ${NAME} = ps80 ]] || [[ ${NAME} == pxc* ]] || [[ ${NAME} == ppg* ]] || [[ ${NAME} == pdps* ]] || [[ ${NAME} == pdpxc* ]] || [[ ${NAME} == *innovation ]] || [[ ${NAME} == *lts ]]; then
     disable_dnf_module ${NAME}
     update_rpm ${NAME}
   fi
